@@ -3,7 +3,7 @@ import requests
 def get_data():
     try:
         response = requests.get(
-            "https://94ce-2001-569-7ed1-e000-f5bb-205c-9c3b-7de.ngrok.io/api/standard-change/",
+            "https://bastilaapi-production.up.railway.app/api/standard-change/",
             headers={
                 "Authorization": "",
                 "Content-Type": "application/json",
