@@ -3,12 +3,6 @@ import os
 import sys
 import json
 
-# {
-#   "pat": "123",
-#   "repo": "123",
-#   "owner": "123",
-#   "branch": "123"
-# }
 
 def get_data():
     github_pat = os.environ["GITHUB_PAT"]
@@ -23,8 +17,6 @@ def get_data():
             "owner": owner,
             "branch": branch
         }
-        print(payload)
-        print(github_pat)
 
         response = requests.post(
             "https://bastilaapi-production.up.railway.app/api/github-check/",

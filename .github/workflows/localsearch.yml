@@ -1,0 +1,36 @@
+name: Search Files
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  search_files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Search files
+        run: python search_files.py
+        env:
+          SEARCH_PATTERN: "requests"
+          # Other environment variables, if required
+
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: search-results
+          path: search-results.txt
