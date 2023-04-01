@@ -1,6 +1,14 @@
 import requests
 import os
 import sys
+import json
+
+# {
+#   "pat": "123",
+#   "repo": "123",
+#   "owner": "123",
+#   "branch": "123"
+# }
 
 def get_data():
     github_pat = os.environ["GITHUB_PAT"]
@@ -9,31 +17,21 @@ def get_data():
     repo = os.environ["REPO_NAME"]
 
     try:
-        print({
-            'pat': github_pat,
-            'repo': repo,
-            'owner': owner,
-            'branch': branch
-        })
+        payload = {
+            "pat": github_pat,
+            "repo": repo,
+            "owner": owner,
+            "branch": branch
+        }
+        print(payload)
         print(github_pat)
-        # {
-        #     "pat": "123",
-        #     "repo": "123",
-        #     "owner": "123",
-        #     "branch": "123"
-        # }
 
         response = requests.post(
             "https://bastilaapi-production.up.railway.app/api/github-check/",
             headers={
                 "Content-Type": "application/json",
             },
-            data={
-                "pat": github_pat,
-                "repo": repo,
-                "owner": owner,
-                "branch": branch
-            }
+            json=json.dumps(payload)
         )
 
         response.raise_for_status()  # Raise an exception if the response contains an HTTP error status code
