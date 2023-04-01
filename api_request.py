@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 
 def get_data():
     github_pat = os.environ["GITHUB_PAT"]
