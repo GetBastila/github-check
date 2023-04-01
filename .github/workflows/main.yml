@@ -24,3 +24,8 @@ jobs:
 
       - name: Run API request script
         run: python api_request.py
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+          COMPARE_BRANCH: ${{ github.head_ref }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
