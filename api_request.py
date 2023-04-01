@@ -15,12 +15,12 @@ def get_data():
             'owner': owner,
             'branch': branch
         })
-
+        print(github_pat)
         # {
-        #     'pat': '123',
-        #     'repo': '123',
-        #     'owner': '123',
-        #     'branch': '123'
+        #     "pat": "123",
+        #     "repo": "123",
+        #     "owner": "123",
+        #     "branch": "123"
         # }
 
         response = requests.post(
@@ -29,10 +29,10 @@ def get_data():
                 "Content-Type": "application/json",
             },
             data={
-                "pat": "123",
-                "repo": "123",
-                "owner": "123",
-                "branch": "123"
+                "pat": github_pat,
+                "repo": repo,
+                "owner": owner,
+                "branch": branch
             }
         )
 
