@@ -76,14 +76,14 @@ def main():
     try:
         check = create_check()
     except Exception as e:
-        sys.exit(1)
+        sys.exit(e)
 
     print('Done Check')
 
     try:
         patterns = fetch_patterns()
     except Exception as e:
-        sys.exit(1)
+        sys.exit(e)
 
     print('Patterns fetched')
     print(patterns)
@@ -91,7 +91,7 @@ def main():
     try:
         results = search_files(patterns)
     except Exception as e:
-        sys.exit(1)
+        sys.exit(e)
 
     print('Code Searched')
 
@@ -102,7 +102,7 @@ def main():
     try:
         post_results(result)
     except Exception as e:
-        sys.exit(1)
+        sys.exit(e)
 
     print('Results Saved')
 
