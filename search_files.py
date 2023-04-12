@@ -71,6 +71,8 @@ def create_check():
 
 
 def main():
+    print('Starting')
+
     try:
         check = create_check()
     except Exception as e:
