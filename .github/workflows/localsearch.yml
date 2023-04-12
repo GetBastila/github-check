@@ -15,24 +15,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
         with:
-          python-version: 3.x
+          go-version: 1.x
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+        run: go mod download
 
       - name: Search files
-        run: python search_files.py
-        env:
-          SEARCH_PATTERN: "requests"
-          # Other environment variables, if required
-
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: search-results
-          path: search-results.txt
+        run: go run search_files.go
