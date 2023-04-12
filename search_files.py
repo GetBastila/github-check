@@ -5,12 +5,11 @@ import re
 from pathlib import Path
 import sys
 
-snippets_url = "https://9970-2001-569-7ed1-e000-c7a1-5b1-7f8d-9677.ngrok.io/api/snippets/"
-checks_url = "https://bastilaapi-production.up.railway.app/api/checks/"
+base_url = "https://bastilaapi-production.up.railway.app"
 
 
-def fetch_patterns(url):
-    response = requests.get(url)
+def fetch_patterns():
+    response = requests.get(f"{base_url}/api/snippets/")
     response.raise_for_status()
     snippets = response.json()
 
@@ -33,7 +32,8 @@ def search_files(patterns):
             with open(path, 'rb') as f:
                 content = f.read()
 
-            snippet_instances += re.findall(pattern['old_snippet'].encode(), content)
+            patterns_in_file = re.findall(pattern['snippet'].encode(), content)
+            snippet_instances += len(patterns_in_file)
 
         pattern_failed = pattern['previous_count'] and (snippet_instances > pattern['previous_count'])
         results.append({
@@ -48,7 +48,7 @@ def search_files(patterns):
 
 def post_results(result):
     esponse = requests.post(
-        "https://bastilaapi-production.up.railway.app/api/results/",
+        f"{base_url}/api/results/",
         data=json.dumps(result),
         headers={
             'Content-Type': 'application/json'
@@ -60,14 +60,14 @@ def post_results(result):
 
 def create_check():
     response = requests.post(
-        "https://bastilaapi-production.up.railway.app/api/checks/",
+        f"{base_url}/api/checks/",
         data=json.dumps({}),
         headers={
             'Content-Type': 'application/json'
         }
     )
     response.raise_for_status()
-    return response
+    return response.json()
 
 
 def main():
@@ -76,24 +76,33 @@ def main():
     except Exception as e:
         sys.exit(1)
 
+    print('Done Check')
+
     try:
-        patterns = fetch_patterns(snippets_url)
+        patterns = fetch_patterns()
     except Exception as e:
         sys.exit(1)
+
+    print('Patterns fetched')
+    print(patterns)
 
     try:
         results = search_files(patterns)
     except Exception as e:
         sys.exit(1)
 
+    print('Code Searched')
+
     result = {
-        "check": check["id"]
+        "check": check["id"],
         "results": results
     }
     try:
         post_results(result)
     except Exception as e:
         sys.exit(1)
+
+    print('Results Saved')
 
     failures = [r for r in results if not r['is_successful']]
     if len(failures) > 1:
