@@ -47,7 +47,7 @@ def search_files(patterns):
 
 
 def post_results(result):
-    esponse = requests.post(
+    response = requests.post(
         f"{base_url}/api/results/",
         data=json.dumps(result),
         headers={
