@@ -40,7 +40,8 @@ def search_files(patterns):
             'id': pattern['id'],
             'previous_count': pattern['previous_count'],
             'count': snippet_instances,
-            'is_successful': not pattern_failed
+            'is_successful': not pattern_failed,
+            'recommendation': pattern['recommendation']
         })
 
     return results
@@ -106,8 +107,13 @@ def main():
 
     print('Results Saved')
 
-    failures = [r for r in results if not r['is_successful']]
-    if len(failures) > 1:
+    is_regression = False
+    for result in results:
+        if not result['is_successful']:
+            print(result['recommendation'])
+            is_regression = True
+
+    if is_regression:
         sys.exit(1)
 
 
