@@ -9,13 +9,11 @@ base_url = "https://bastilaapi-production.up.railway.app"
 
 
 def fetch_patterns():
-    response = requests.get(f"{base_url}/api/snippets/")
+    response = requests.get(f"{base_url}/api/standard-changes/")
     response.raise_for_status()
-    snippets = response.json()
+    standards = response.json()
 
-    print(snippets)
-
-    return snippets['results']
+    return standards['results']
 
 
 def search_files(patterns):
@@ -41,7 +39,7 @@ def search_files(patterns):
             'previous_count': pattern['previous_count'],
             'count': snippet_instances,
             'is_successful': not pattern_failed,
-            'recommendation': pattern['recommendation']
+            'fix_recommendation': pattern['fix_recommendation']
         })
 
     return results
@@ -49,7 +47,7 @@ def search_files(patterns):
 
 def post_results(result):
     response = requests.post(
-        f"{base_url}/api/results/",
+        f"{base_url}/api/check-results/",
         data=json.dumps(result),
         headers={
             'Content-Type': 'application/json'
@@ -61,7 +59,7 @@ def post_results(result):
 
 def create_check():
     response = requests.post(
-        f"{base_url}/api/checks/",
+        f"{base_url}/api/code-checks/",
         data=json.dumps({}),
         headers={
             'Content-Type': 'application/json'
@@ -110,7 +108,7 @@ def main():
     is_regression = False
     for result in results:
         if not result['is_successful']:
-            print(result['recommendation'])
+            print(result['fix_recommendation'])
             is_regression = True
 
     if is_regression:
