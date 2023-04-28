@@ -34,6 +34,7 @@ def search_files(patterns):
             snippet_instances += len(patterns_in_file)
 
         # pattern['previous_count']
+        # pattern['previous_count']
         pattern_failed = pattern['previous_count'] and (snippet_instances > pattern['previous_count'])
         results.append({
             'id': pattern['id'],
