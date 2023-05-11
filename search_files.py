@@ -1,15 +1,15 @@
 import requests
 import json
-import os
 import re
 from pathlib import Path
 import sys
 
-base_url = "https://bastilaapi-production.up.railway.app"
+# base_url = 'https://bastilaapi-production.up.railway.app'
+base_url = 'http://localhost:8000'
 
 
-def fetch_patterns():
-    response = requests.get(f"{base_url}/api/standard-changes/")
+def fetch_patterns(session):
+    response = session.get(f'{base_url}/api/check/standard-changes/')
     response.raise_for_status()
     standards = response.json()
 
@@ -47,42 +47,41 @@ def search_files(patterns):
     return results
 
 
-def post_results(result):
-    response = requests.post(
-        f"{base_url}/api/check-results/",
-        data=json.dumps(result),
-        headers={
-            'Content-Type': 'application/json'
-        }
+def post_results(session, result):
+    response = session.post(
+        f'{base_url}/api/check/check-results/',
+        data=json.dumps(result)
     )
     response.raise_for_status()
     return response
 
 
-def create_check():
-    response = requests.post(
-        f"{base_url}/api/code-checks/",
-        data=json.dumps({}),
-        headers={
-            'Content-Type': 'application/json'
-        }
+def create_check(session):
+    response = session.post(
+        f'{base_url}/api/check/code-checks/',
+        data=json.dumps({})
     )
     response.raise_for_status()
     return response.json()
 
 
 def main():
+    session = requests.Session()
+    session.headers.update({
+        'Authorization': 'Api-Key 9sGpMHAI.snpJLo6ovjzQ111nkIFBmYImBTLc9IEl',
+        'Content-Type': 'application/json'
+    })
     print('Starting')
 
     try:
-        check = create_check()
+        check = create_check(session)
     except Exception as e:
         sys.exit(e)
 
     print('Done Check')
 
     try:
-        patterns = fetch_patterns()
+        patterns = fetch_patterns(session)
     except Exception as e:
         sys.exit(e)
 
@@ -97,11 +96,11 @@ def main():
     print('Code Searched')
 
     result = {
-        "check": check["id"],
-        "results": results
+        'check': check['id'],
+        'results': results
     }
     try:
-        post_results(result)
+        post_results(session, result)
     except Exception as e:
         sys.exit(e)
 
@@ -117,5 +116,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
