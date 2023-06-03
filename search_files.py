@@ -5,9 +5,7 @@ from pathlib import Path
 import sys
 import os
 
-base_url = 'https://bastilaapi-production.up.railway.app'
-# base_url = 'https://bastila.dev'
-
+base_url = 'https://bastila.dev'
 
 def fetch_patterns(session):
     response = session.get(f'{base_url}/api/check/standard-changes/')
@@ -29,18 +27,23 @@ def search_files(patterns):
                 continue
 
             with open(path, 'rb') as f:
-                content = f.read()
+                content = f.readlines()
 
             patterns_in_file = re.findall(pattern['snippet'].encode(), content)
             snippet_instances += len(patterns_in_file)
 
         pattern_failed = pattern['previous_count'] and (snippet_instances > pattern['previous_count'])
+        fix_count = 0
+        if pattern['previous_count']:
+            fix_count = pattern['previous_count'] - snippet_instances
         results.append({
             'id': pattern['id'],
             'previous_count': pattern['previous_count'],
             'count': snippet_instances,
             'is_successful': not pattern_failed,
-            'fix_recommendation': pattern['fix_recommendation']
+            'fix_count': fix_count,
+            'snippet': pattern['snippet'],
+            'fix_recommendation': f"Use `{pattern['fix_recommendation']}` instead of `{pattern['snippet']}`"
         })
 
     return results
@@ -106,6 +109,8 @@ def main():
 
     is_regression = False
     for result in results:
+        if result['fix_count'] > 0:
+            print(f'{result['fix_count']} instances of {pattern['snippet']} removed.')
         if not result['is_successful']:
             is_regression = True
 
