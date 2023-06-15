@@ -91,9 +91,9 @@ def main():
 
     print('Code Searched')
 
-    post_results = os.getenv('POST_RESULTS', 'false').lower() == 'true'
+    post_results_to_bastila = os.getenv('POST_RESULTS', 'false').lower() == 'true'
 
-    if post_results:
+    if post_results_to_bastila:
         result = {
             'check': check['id'],
             'results': results
