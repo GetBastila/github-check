@@ -27,22 +27,17 @@ def search_files(patterns):
                 continue
 
             with open(path, 'rb') as f:
-                content = f.readlines()
+                content = f.read()
 
             patterns_in_file = re.findall(pattern['snippet'].encode(), content)
             snippet_instances += len(patterns_in_file)
 
         pattern_failed = pattern['previous_count'] and (snippet_instances > pattern['previous_count'])
-        fix_count = 0
-        if pattern['previous_count']:
-            fix_count = pattern['previous_count'] - snippet_instances
         results.append({
             'id': pattern['id'],
             'previous_count': pattern['previous_count'],
             'count': snippet_instances,
             'is_successful': not pattern_failed,
-            'fix_count': fix_count,
-            'snippet': pattern['snippet'],
             'fix_recommendation': f"Use `{pattern['fix_recommendation']}` instead of `{pattern['snippet']}`"
         })
 
@@ -96,22 +91,24 @@ def main():
 
     print('Code Searched')
 
-    result = {
-        'check': check['id'],
-        'results': results
-    }
-    try:
-        post_results(session, result)
-    except Exception as e:
-        sys.exit(e)
+    post_results = os.getenv('POST_RESULTS', 'false').lower() == 'true'
 
-    print('Results Saved')
+    if post_results:
+        result = {
+            'check': check['id'],
+            'results': results
+        }
+        try:
+            post_results(session, result)
+        except Exception as e:
+            sys.exit(e)
+
+        print('Results Saved')
 
     is_regression = False
     for result in results:
-        if result['fix_count'] > 0:
-            print(f'{result['fix_count']} instances of {pattern['snippet']} removed.')
         if not result['is_successful']:
+            print(result['fix_recommendation'])
             is_regression = True
 
     if is_regression:

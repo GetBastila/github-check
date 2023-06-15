@@ -8,13 +8,13 @@ inputs:
   BASTILA_KEY:
     description: 'The API key for Bastila'
     required: true
+  POST_RESULTS:
+    description: 'Whether to post the progress to Bastila'
+    required: true
 
 runs:
-  using: 'composite'  # to enable running multiple shell commands
+  using: 'composite'
   steps:
-    - run: echo "BASTILA_KEY=${{ inputs.BASTILA_KEY }}" >> $GITHUB_ENV
-      shell: bash
-
     - name: Check out repository
       uses: actions/checkout@v2
 
@@ -30,3 +30,6 @@ runs:
 
     - run: python ${{ github.action_path }}/search_files.py
       shell: bash
+      env:
+        BASTILA_KEY: ${{ inputs.BASTILA_KEY }}
+        POST_RESULTS: ${{ inputs.POST_RESULTS }}
