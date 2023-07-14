@@ -1,11 +1,28 @@
 import requests
 import json
 import re
-from pathlib import Path
 import sys
 import os
+import fnmatch
+
+from pathlib import Path
 
 base_url = 'https://bastila.dev'
+
+
+def load_config():
+    try:
+        with open("config.json", "r") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return None
+
+
+def handle_exception(error, prevent_regression):
+    print(error)
+    if prevent_regression:
+        sys.exit(1)
+
 
 def fetch_patterns(session):
     response = session.get(f'{base_url}/api/check/standard-changes/')
@@ -15,22 +32,55 @@ def fetch_patterns(session):
     return standards['results']
 
 
+def read_gitignore():
+    gitignore_paths = []
+    try:
+        with open('.gitignore', 'r') as f:
+            for line in f:
+                gitignore_paths.append(line.strip())
+    except FileNotFoundError:
+        print('.gitignore file not found.')
+    return gitignore_paths
+
+
+def is_ignored(path, gitignore_paths):
+    for ignore_pattern in gitignore_paths:
+        if fnmatch.fnmatch(path, ignore_pattern):
+            return True
+    return False
+
+
 def search_files(patterns):
     results = []
+    gitignore_paths = read_gitignore()
 
     # Loop over every pattern
     for pattern in patterns:
-        # Loop over every file
+        # Extract file paths to search or exclude
+        include_paths = pattern.get('include_paths', ['**/*'])
+        exclude_paths = pattern.get('exclude_paths', [])
+
         snippet_instances = 0
-        for path in Path('.').glob('**/*'):
-            if path.is_dir():
-                continue
+        # Loop over every file
+        for include_pattern in include_paths:
+            for path in Path('.').glob(include_pattern):
+                if path.is_dir():
+                    continue
 
-            with open(path, 'rb') as f:
-                content = f.read()
+                # Convert Path object to string
+                path_str = str(path)
 
-            patterns_in_file = re.findall(pattern['snippet'].encode(), content)
-            snippet_instances += len(patterns_in_file)
+                # Skip file if it is in .gitignore or in exclude_paths
+                if is_ignored(path_str, gitignore_paths):
+                    continue
+                if any(fnmatch.fnmatch(path_str, exclude_pattern) for exclude_pattern in exclude_paths):
+                    continue
+
+                with open(path, 'rb') as f:
+                    content = f.read()
+
+                patterns_in_file = re.findall(pattern['snippet'].encode(), content)
+                snippet_instances += len(patterns_in_file)
 
         pattern_failed = pattern['previous_count'] and (snippet_instances > pattern['previous_count'])
         results.append({
@@ -38,7 +88,7 @@ def search_files(patterns):
             'previous_count': pattern['previous_count'],
             'count': snippet_instances,
             'is_successful': not pattern_failed,
-            'fix_recommendation': f"Use `{pattern['fix_recommendation']}` instead of `{pattern['snippet']}`"
+            'fix_recommendation': "Use {0} instead of {1}".format(pattern['fix_recommendation'], pattern['snippet'])
         })
 
     return results
@@ -63,47 +113,57 @@ def create_check(session):
 
 
 def main():
+    config = load_config()
+
+    BASTILA_KEY = os.getenv("BASTILA_KEY", None)
+    POST_RESULTS = os.getenv('POST_RESULTS', 'false').lower() == 'true'
+    PREVENT_REGRESSION = os.getenv("PREVENT_REGRESSION", 'false').lower() == 'true'
+
+    if config is None and BASTILA_KEY is None:
+        print("Configuration not found. Please run the command bastila_setup or setup an environment file to set up the necessary parameters.")
+        handle_exception('Configuration not setup', PREVENT_REGRESSION)
+    elif config is not None:
+        BASTILA_KEY = config["BASTILA_KEY"]
+        PREVENT_REGRESSION = config["PREVENT_REGRESSION"]
+
     session = requests.Session()
     session.headers.update({
-        'Authorization': f'Api-Key {os.getenv("BASTILA_KEY")}',
+        'Authorization': f'Api-Key {BASTILA_KEY}',
         'Content-Type': 'application/json'
     })
-    print('Starting')
+    print('Starting Bastila Search')
 
     try:
+        print('Starting check')
         check = create_check(session)
     except Exception as e:
-        sys.exit(e)
-
-    print('Started Check')
+        print('Create check failed')
+        handle_exception(e, PREVENT_REGRESSION)
 
     try:
+        print('Fetching patterns')
         patterns = fetch_patterns(session)
     except Exception as e:
-        sys.exit(e)
-
-    print('Patterns Fetched')
+        print('Fetch patterns failed')
+        handle_exception(e, PREVENT_REGRESSION)
 
     try:
+        print('Searching files')
         results = search_files(patterns)
     except Exception as e:
-        sys.exit(e)
+        print('Fetch patterns failed')
+        handle_exception(e, PREVENT_REGRESSION)
 
-    print('Code Searched')
-
-    post_results_to_bastila = os.getenv('POST_RESULTS', 'false').lower() == 'true'
-
-    if post_results_to_bastila:
-        result = {
-            'check': check['id'],
-            'results': results
-        }
+    if POST_RESULTS:
         try:
-            post_results(session, result)
+            print('Posting results')
+            post_results(session, {
+              'check': check['id'],
+              'results': results
+            })
         except Exception as e:
-            sys.exit(e)
-
-        print('Results Saved')
+            print('Posting results failed')
+            handle_exception(e, PREVENT_REGRESSION)
 
     is_regression = False
     for result in results:
@@ -112,10 +172,14 @@ def main():
             is_regression = True
 
     if is_regression:
-        sys.exit(1)
         print('Check Failed')
-
-    print('Success')
+        if PREVENT_REGRESSION:
+            sys.exit(1)
+        else:
+            print('You are allowing regressions so we did not throw an error')
+    else:
+        print('Bastila check succeeded')
+    print('Bastila check complete')
 
 
 if __name__ == '__main__':

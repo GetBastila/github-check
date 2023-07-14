@@ -10,7 +10,12 @@ inputs:
     required: true
   POST_RESULTS:
     description: 'Whether to post the progress to Bastila'
-    required: true
+    required: false
+    default: 'false'
+  PREVENT_REGRESSION:
+    description: 'Whether to prevent changes that add deprecated patterns'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -26,6 +31,7 @@ runs:
     - run: |
         python -m pip install --upgrade pip
         pip install requests
+        pip install pathspec
       shell: bash
 
     - run: python ${{ github.action_path }}/search_files.py
@@ -33,3 +39,4 @@ runs:
       env:
         BASTILA_KEY: ${{ inputs.BASTILA_KEY }}
         POST_RESULTS: ${{ inputs.POST_RESULTS }}
+        PREVENT_REGRESSION: ${{ inputs.PREVENT_REGRESSION }}
