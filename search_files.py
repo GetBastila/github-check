@@ -10,20 +10,6 @@ from pathlib import Path
 base_url = 'https://bastila.dev'
 
 
-def load_config():
-    try:
-        with open("config.json", "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return None
-
-
-def handle_exception(error, prevent_regression):
-    print(error)
-    if prevent_regression:
-        sys.exit(1)
-
-
 def fetch_patterns(session):
     response = session.get(f'{base_url}/api/check/standard-changes/')
     response.raise_for_status()
@@ -113,18 +99,13 @@ def create_check(session):
 
 
 def main():
-    config = load_config()
-
     BASTILA_KEY = os.getenv("BASTILA_KEY", None)
     POST_RESULTS = os.getenv('POST_RESULTS', 'false').lower() == 'true'
     PREVENT_REGRESSION = os.getenv("PREVENT_REGRESSION", 'false').lower() == 'true'
 
-    if config is None and BASTILA_KEY is None:
-        print("Configuration not found. Please run the command bastila_setup or setup an environment file to set up the necessary parameters.")
-        handle_exception('Configuration not setup', PREVENT_REGRESSION)
-    elif config is not None:
-        BASTILA_KEY = config["BASTILA_KEY"]
-        PREVENT_REGRESSION = config["PREVENT_REGRESSION"]
+    if BASTILA_KEY is None:
+        print("Your BASTILA_KEY is not setup to run the bastila check. Open your settings.json file and add the \"bastila.BASTILA_KEY\": \"\" key")
+        return
 
     session = requests.Session()
     session.headers.update({
@@ -137,22 +118,23 @@ def main():
         print('Starting check')
         check = create_check(session)
     except Exception as e:
-        print('Create check failed')
-        handle_exception(e, PREVENT_REGRESSION)
+        print(e)
+        sys.exit(1)
 
     try:
         print('Fetching patterns')
         patterns = fetch_patterns(session)
     except Exception as e:
-        print('Fetch patterns failed')
-        handle_exception(e, PREVENT_REGRESSION)
+        print(e)
+        sys.exit(1)
 
+    results = []
     try:
         print('Searching files')
         results = search_files(patterns)
     except Exception as e:
-        print('Fetch patterns failed')
-        handle_exception(e, PREVENT_REGRESSION)
+        print(e)
+        sys.exit(1)
 
     if POST_RESULTS:
         try:
@@ -162,8 +144,8 @@ def main():
               'results': results
             })
         except Exception as e:
-            print('Posting results failed')
-            handle_exception(e, PREVENT_REGRESSION)
+            print(e)
+            sys.exit(1)
 
     is_regression = False
     for result in results:
